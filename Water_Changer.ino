@@ -1,4 +1,5 @@
 //Version 5: water changer by Oscar Chen
+//V5.1 update: timer mode adapted to as the sub-mode of daily target mode, where water level is drawn down during water change.
 
 #include <PinChangeInterrupt.h>
 #include <TimeLib.h>
@@ -58,10 +59,13 @@ unsigned long lastPresChangeTime = millis() - PressureChangeDelay;
 float calibrationFactor = 30; // pulses per second per litre/minute of flow.
 volatile byte pulseCount;
 float flowRate;
-float totalVolume;
+float totalVolume;  //current dayily water consumption;
 unsigned long oldTime;
-unsigned long weeklyTotal;
-float YDayVolume;
+unsigned long weeklyTotal;  //weekly water usage
+float YDayVolume;     //yesterday's total water usage
+
+float waterChangeVol; //volume of water in water change session
+float dailyEvapVol; //evaporated volume per day
 /////////////End of Flow meter declarations
 
 //opMode 2 & 4 settings
@@ -69,7 +73,10 @@ int targetVolume = 15;      //desired daily water consumption volume in litres
 int startTimeHour = 18;     //set what time during the day to start water change operation, hour
 int startTimeMinute = 0;   //set what time during the day to start water change operation, minute
 int drainMinutes = 7;       //duration of drain pump in Mode 4
+bool waterChangeInProgress = false; //flag to indicate if water change is in progress
+bool waterChangeLevelLow = false; //flag to indicate if water level is drawn down during water change (used to find out if water change is completed later)
 bool timerModeDrainOn = false;  //flag to indicate if draining is active (opMode 4 Timer Mode)
+bool maintainLevelDuringWC = true; //maintains water level during water change (small batch vs large batch water change)
 
 int drainTimeHour;
 int drainTimeMinute;
@@ -86,8 +93,10 @@ void setup() {
   
   setTime(18,45,0,1,28,18); //set default time (hr, min, sec, day, month, year)
 
-  dailyAlarm = Alarm.alarmRepeat(startTimeHour, startTimeMinute, 0, DailyReset);  //sets time to start water change 
+//set daily alarm to start draining water
+  dailyAlarm = Alarm.alarmRepeat(startTimeHour, startTimeMinute, 0, DailyReset);  //sets time to start water change (opMode 2 Daily Volume Target mode)
 
+//calculate what time to stop draining and start re-filling (opMode 4)
   if (startTimeMinute + drainMinutes >= 60) {
     drainTimeHour = startTimeHour + (startTimeMinute + drainMinutes) / 60;
     drainTimeMinute = (drainMinutes + startTimeMinute) % 60;
@@ -95,8 +104,11 @@ void setup() {
     drainTimeHour = startTimeHour;
     drainTimeMinute = drainMinutes + startTimeMinute;
   }
-  
+
+ //set daily alarm to start re-filling
   dailyAlarm = Alarm.alarmRepeat(drainTimeHour, drainTimeMinute, 0, DailyReset2); //set time to start filling (opMode 4 Timer Mode only)
+
+ //weekly action
   weeklyAlarm = Alarm.alarmRepeat(dowSaturday, 0, 00, 0, WeeklyReset);
 
   pinMode(FloatSensor, INPUT_PULLUP);
@@ -129,26 +141,7 @@ void setup() {
 
 void loop() {
 //main program
-
-  //Serial.print("errorFlag: ");
-  //Serial.println(errorFlag);
-  //Serial.print("Today Volume: ");
-  //Serial.println(totalVolume);
-  //Serial.print("Yesterday Volume: ");
-  //Serial.println(YDayVolume);
-  //Serial.print("checkTankLevel: ");
-  //Serial.println(checkTankLevel());
-  //Serial.print("checkInletPressure: ");
-  //Serial.println(checkInletPressure());
-  
-  //Serial.print("inletPres: ");
-  //Serial.println(inletPres);
-  //Serial.print("Float: ");
-  //Serial.println(FloatSensorState);
-  //Serial.print("High SW: ");
-  //Serial.println(HighLevelState);
-  
-
+ 
   Alarm.delay(0);
   flowmeterUpdate();
   updateSensors();
@@ -278,6 +271,29 @@ void loop() {
   updateLCD();
 }
 
+void waterChangeProgressUpdate() {
+  //update the water change completion flag
+  //update global variable waterChangeInProgress
+  //update global variable waterChangeLevelLow
+
+int currentLevel = checkTankLevel();
+
+  if (waterChangeInProgress == true) {
+    
+    if (waterChangeLevelLow == false && currentLevel < 250) {
+      //water level dropped, update waterChangeLevelLow to true
+      waterChangeLevelLow = true;
+      
+    } else if (waterChangeLevelLow == true && currentLevel >= 250) {
+      
+      //water level went from low to high, water level change completed, update flags
+      waterChangeLevelLow = false;
+      waterChangeInProgress = false;
+
+    }
+  }
+  
+}
 
 void updateLCD() {
 
@@ -389,7 +405,10 @@ void DailyReset() {
   weeklyTotal += totalVolume;
   YDayVolume = totalVolume;
   totalVolume = 0;    //reset the flowmeter total volume to zero
+  waterChangeVol = 0; //reset the daily water change volume to zero
+  dailyEvapVol = 0; //reset daily water evaporation volume to zero
 
+  waterChangeInProgress = true;
   timerModeDrainOn = true;  //for opMode 4 only: start draining
 
   //Serial.println("Daily reset.");
@@ -437,6 +456,13 @@ void flowmeterUpdate() {
       volume = flowRate / 60;
       totalVolume += volume;
 
+    //if water change is in progress, also add to water change volume
+      if (waterChangeInProgress == true) {
+        waterChangeVol += volume;
+      }
+
+      dailyEvapVol = totalVolume - waterChangeVol;
+
     // Reset the pulse counter so we can start incrementing again
     pulseCount = 0;
     
@@ -477,6 +503,7 @@ bool checkWaterConsumption() {
     
   } else {
     returnValue = false;
+    waterChangeInProgress = false;  //water change is completed
   }
 
   return returnValue;
