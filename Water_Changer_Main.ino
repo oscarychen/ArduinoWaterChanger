@@ -1,4 +1,5 @@
-//Version 5: water changer by Oscar Chen
+//Version 6: water changer by Oscar Chen
+//Ver 6 changes: merged with menu system
 //V5.1 update changes: 
 // separated the code into multiple files for readability
 // added ability to distinguish between water use during a water change session and evaporation
@@ -24,6 +25,7 @@
 #define rotaryPin_A 12  //digital rotary encoder pin A
 #define rotaryPin_B 13  //digital rotary encoder pin B
 #define rotaryButtonPin 8 //digital rotary click button pin
+#define inputTimeOut 10000   //time out for human input session, milliseconds
 
 ///////// END OF PIN ASSIGNMENT /////////
 
@@ -89,6 +91,47 @@ bool maintainLevelDuringWC = true; //maintains water level during water change (
 
 int drainTimeHour;
 int drainTimeMinute;
+
+/////Digital Rotary Encoder Delcarations/////////
+unsigned int maxMenuItems;     //number of menu items
+unsigned char encoder_A = 0;  
+unsigned char encoder_B = 0;
+unsigned char encoder_A_prev = 0;
+unsigned char encoder_C = 1;  //encoder button
+unsigned char encoder_C_prev = 1;
+unsigned long currentTime;
+unsigned long loopTime;
+
+/////Menu related declarations/////////
+
+unsigned int setHour = 0;   //used for setting time: hour
+unsigned int setMinute = 0; //used for setting time: minute
+unsigned int menuPos = 0; //current menu position
+unsigned int lastMenuPos = 0; //previous menu position
+unsigned int parentMenuPos = 0; //parent menu position
+bool humanInputActive = false;  //flag to indicate if input session is active
+unsigned subMenuActive = 0;   //flag to indicate a sub selection menu session is active: 0 - main menu; 1 - number selection 1- 255; 2 - binary selection yes/no; 3 - time setting;
+unsigned int subMenuPos = 0;  //sub menu rotary position
+unsigned int subMenuClick = 0; //sub menu click counter
+unsigned long lastInputTime = millis(); //keep track of time of last human input
+
+typedef struct menu_type
+ {
+     
+     menu_type()
+     : code(0), text("")
+     {
+       //do nothing
+     }
+     
+     unsigned int code; //code that indicate address (position) in the menu tree
+     String text; //text to be displayed for the menu selection
+     
+ }  menu_type;
+
+menu_type menu[100] = {}; //initilizing menu array, use a number >= than the number of menu options
+
+/////END OF Menu related declarations////////////
 
 //Alarm (scheduler) delcarations
 AlarmId dailyAlarm;   //daily execution
@@ -226,7 +269,9 @@ void loop() {
     ESD(); //update ESD sequence.
     
   }
-  
+
+  rotaryEncoderUpdate();
+  lcdBackLight();
   updateLCD();
 }
 

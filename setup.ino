@@ -43,6 +43,8 @@ void setup() {
   //attachInterrupt(digitalPinToInterrupt(HighLevelSw), ESD, FALLING);
   //attachPCINT(digitalPinToPCINT(HighLevelSw), ESD, FALLING); //only use this line if pin has no external interrupt, needs library <PinChangeInterrupt.h>
 
+  rotaryEncoderInit();  //initialize rotary encoder
+  menuInit(); //initialize menu system
   
   lcd.init(); // initialize the lcd 
   lcd.backlight();
