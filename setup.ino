@@ -4,7 +4,7 @@ void setup() {
   Serial.begin(9600);
   while(!Serial);
   
-  setTime(18,45,0,1,28,18); //set default time upon powering up (hr, min, sec, day, month, year)
+  setTime(0,0,0,1,1,18); //set default time upon powering up (hr, min, sec, day, month, year)
 
 //set daily alarm to start draining water
   dailyAlarm = Alarm.alarmRepeat(startTimeHour, startTimeMinute, 0, DailyReset);  //sets time to start water change (opMode 2 Daily Volume Target mode)

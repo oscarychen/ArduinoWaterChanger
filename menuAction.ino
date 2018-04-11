@@ -4,8 +4,6 @@ void menuAction(unsigned int menuCode) {
   //execute approriate actions
   //returns true if some action is executed
   //returns false if nothing is done
- Serial.print("menuAction called with menuCode = ");
- Serial.println(menuCode);
   
       switch (menuCode) {
 
@@ -27,13 +25,18 @@ void menuAction(unsigned int menuCode) {
           lcd.clear();
           menuPos = 1;
           updateMenuDisplay(menuPos);
+          
           //code to set time variables
+          setTime(setHour, setMinute,0,1,1,18); //set system time (hr, min, sec, day, month, year)
+          
         }
         
         break;
         
         case 211: //set opMode to continuous mode
- 
+
+          opMode = 1;   //set opMode to continuous mode
+          
           lcd.clear();
           lcd.setCursor(0,0);
           lcd.print("CONTINUOUS MODE");
@@ -47,13 +50,15 @@ void menuAction(unsigned int menuCode) {
           break;
 
           case 221: //set opMode to daily volume target mode
+
+          opMode = 2;
  
           lcd.clear();
           lcd.setCursor(0,0);
           lcd.print("DAILY VOLUME MODE");
           lcd.setCursor(0,1);
           lcd.print("ACTIVATED..");
-          
+
           menuPos = 222;  //return to a previous menu location
           delay(1000);
           updateMenuDisplay(menuPos);
@@ -68,7 +73,7 @@ void menuAction(unsigned int menuCode) {
             lcd.setCursor(0,0);
             lcd.print("DAILY TARGET VOLUME:");
             subMenuActive = 1;    //activate subMenu1
-            subMenuPos = 10;     //sub menu initialization, set it to current daily volume target
+            subMenuPos = targetVolume;     //sub menu initialization, set it to current daily volume target
             subMenuClick = 0;
             subMenu1Update(0);  //calls subMenu1Update with 0 (no action)
 
@@ -77,6 +82,7 @@ void menuAction(unsigned int menuCode) {
             subMenuActive = 0;  //deactivate submenu, activate main menus
             
             //set daily target variable to subMenuPos;
+            targetVolume = subMenuPos;
             
             lcd.clear();
             lcd.setCursor(0,0);
@@ -113,13 +119,17 @@ void menuAction(unsigned int menuCode) {
           lcd.clear();
           menuPos = 1;
           updateMenuDisplay(menuPos);
+          
           //code to set time variables
+          startTimeHour = setHour;
+          startTimeMinute = setMinute;
         }
         
         break;
 
-        case 231:
-          //set opMode to top-off only mode
+        case 231: //set opMode to top-off only mode
+
+          opMode = 3;
 
           lcd.clear();
           lcd.setCursor(0,0);
@@ -131,8 +141,9 @@ void menuAction(unsigned int menuCode) {
           updateMenuDisplay(menuPos);
           break;
 
-        case 241:
-          //set opMode to daily timer mode
+        case 241: //set opMode to daily timer mode
+
+          opMode = 4;
 
           lcd.clear();
           lcd.setCursor(0,0);
@@ -163,6 +174,7 @@ void menuAction(unsigned int menuCode) {
             subMenuActive = 0;  //deactivate submenu, activate main menus
             
             //set daily target variable to subMenuPos;
+            drainMinutes = subMenuPos;
             
             lcd.clear();
             lcd.setCursor(0,0);
@@ -199,9 +211,28 @@ void menuAction(unsigned int menuCode) {
           menuPos = 1;
           updateMenuDisplay(menuPos);
           //code to set time variables
+          startTimeHour = setHour;
+          startTimeMinute = setMinute;
+          
         }
         
         break;
+
+
+        case 251: //set opMode to hibernation
+
+          opMode = 0;
+
+          lcd.clear();
+          lcd.setCursor(0,0);
+          lcd.print("ALL FUNCTIONS");
+          lcd.setCursor(0,1);
+          lcd.print("DISABLED");
+          menuPos = 2;  //return to a previous menu location
+          delay(1000);
+          updateMenuDisplay(menuPos);
+          
+          break;
           
 
         case 311: //setting calibration factor
@@ -231,9 +262,11 @@ void menuAction(unsigned int menuCode) {
             lcd.clear();
             lcd.setCursor(0,0);
             if (subMenuPos == 1) {
+              inletPresEnable = true;
               lcd.print("LOW PRESSURE SWITCH ENABLED");
               
             } else {
+              inletPresEnable = false;
               lcd.print("LOW PRESSURE SWITCH DISABLED");
             }
             
@@ -263,6 +296,7 @@ void menuAction(unsigned int menuCode) {
             subMenuActive = 0;  //deactivate submenu, activate main menus
             
             //set daily target variable to subMenuPos;
+            PressureChangeDelay = subMenuPos * 60000;
             
             lcd.clear();
             lcd.setCursor(0,0);
@@ -297,6 +331,7 @@ void menuAction(unsigned int menuCode) {
             subMenuActive = 0;  //deactivate submenu, activate main menus
             
             //set daily target variable to subMenuPos;
+            PumpPower = subMenuPos;
             
             lcd.clear();
             lcd.setCursor(0,0);
@@ -331,6 +366,7 @@ void menuAction(unsigned int menuCode) {
             subMenuActive = 0;  //deactivate submenu, activate main menus
             
             //set daily target variable to subMenuPos;
+            ESDpumpDuration = subMenuPos * 60000;
             
             lcd.clear();
             lcd.setCursor(0,0);
@@ -371,9 +407,11 @@ void menuAction(unsigned int menuCode) {
             lcd.clear();
             lcd.setCursor(0,0);
             if (subMenuPos == 1) {
+              ESDallowAutoReset = true;
               lcd.print("ESD AUTO RESET ENABLED");
               
             } else {
+              ESDallowAutoReset = false;
               lcd.print("ESD AUTO RESET DISABLED");
             }
             
@@ -403,6 +441,7 @@ void menuAction(unsigned int menuCode) {
             subMenuActive = 0;  //deactivate submenu, activate main menus
             
             //set daily target variable to subMenuPos;
+            autoResetDelay = subMenuPos * 3600000;
             
             lcd.clear();
             lcd.setCursor(0,0);
@@ -437,6 +476,7 @@ void menuAction(unsigned int menuCode) {
             subMenuActive = 0;  //deactivate submenu, activate main menus
             
             //set daily target variable to subMenuPos;
+            maxAutoResets = subMenuPos;
             
             lcd.clear();
             lcd.setCursor(0,0);
@@ -477,6 +517,8 @@ void menuAction(unsigned int menuCode) {
             lcd.clear();
             lcd.setCursor(0,0);
             if (subMenuPos == 1) {
+              
+              masterReset();
               lcd.print("RESET COMPLETED");
               
             } else {
@@ -494,9 +536,21 @@ void menuAction(unsigned int menuCode) {
 
         case 81: //manual drain
 
+          if (digitalRead(rotaryButtonPin) == HIGH) {
+            PumpOn();
+          } else {
+            PumpOff();
+          }
+
           break;
 
         case 82: //manual fill
+
+          if (digitalRead(rotaryButtonPin) == HIGH) {
+            InletOpen();
+          } else {
+            InletClose();
+          }
 
           break;
 

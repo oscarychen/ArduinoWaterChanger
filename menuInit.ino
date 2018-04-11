@@ -61,6 +61,13 @@ void menuInit() {
       menu[i++].text = "SCHEDULE TIME";
         menu[i].code = 2431;
         menu[i++].text = "START DAILY WATER CHANGE AT:";
+
+    menu[i].code = 25;
+    menu[i++].text = "HIBERNATION MODE";
+      menu[i].code = 250;
+      menu[i++].text = "PREVIOUS MENU";
+      menu[i].code = 251;
+      menu[i++].text = "ACTIVATE";
         
   
   menu[i].code = 3;

@@ -8,7 +8,7 @@
 #include <PinChangeInterrupt.h>
 #include <TimeLib.h>
 #include <TimeAlarms.h>
-#include <Wire.h> 
+#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
 ////////PIN ASSIGNMENT /////////
@@ -153,13 +153,11 @@ void loop() {
   
     switch (opMode) {
       case 0: //disabled mode, do nothing
-        //Serial.println("Mode 0");
         PumpOff();
         InletClose();
         break;
       
       case 1: // continuous mode
-        //Serial.println("Mode 1");
            
           if (checkTankLevel() == 255) { //if (emergency) high level switch is treiggered
               ESD();
