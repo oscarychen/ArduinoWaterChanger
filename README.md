@@ -1,3 +1,3 @@
 # ArduinoWaterChanger
 
-http://www.timeslikethese.ca/journal/automated-aquarium-water-management
+https://oscarchen.ca/blog/arduino-aquarium-water-changer/
